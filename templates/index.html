@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conversor a Opus</title>
+    <link rel="stylesheet" href="static/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Conversor de Audio a Opus</h1>
+        <p>Sube archivos de audio para convertirlos a formato Opus (máximo 1GB)</p>
+        
+        <div class="upload-container">
+            <form id="upload-form">
+                <input type="file" id="file-input" name="files" multiple accept="audio/*" style="display: none;">
+                <button type="button" id="upload-btn" class="btn">Seleccionar archivos</button>
+                <p>o arrastra y suelta archivos aquí</p>
+                <div id="file-list"></div>
+            </form>
+        </div>
+        
+        <div class="action-buttons">
+            <button id="convert-btn" class="btn" disabled>Convertir a Opus</button>
+            <button id="cleanup-btn" class="btn cleanup-btn">Limpiar y Volver al Inicio</button>
+        </div>
+        
+        <div id="progress-container" class="hidden">
+            <h3>Progreso de conversión:</h3>
+            <div class="progress-bar">
+                <div id="progress" class="progress"></div>
+            </div>
+            <div id="status">Preparando...</div>
+            <div id="file-status"></div>
+        </div>
+        
+        <div id="results"></div>
+    </div>
+
+    <script>
+        // Variables globales
+        let selectedFiles = [];
+        let conversionInProgress = false;
+        
+        // Elementos del DOM
+        const fileInput = document.getElementById('file-input');
+        const uploadBtn = document.getElementById('upload-btn');
+        const fileList = document.getElementById('file-list');
+        const convertBtn = document.getElementById('convert-btn');
+        const cleanupBtn = document.getElementById('cleanup-btn');
+        const progressContainer = document.getElementById('progress-container');
+        const progressBar = document.getElementById('progress');
+        const status = document.getElementById('status');
+        const fileStatus = document.getElementById('file-status');
+        const results = document.getElementById('results');
+        const uploadContainer = document.querySelector('.upload-container');
+        
+        // Event listeners
+        uploadBtn.addEventListener('click', () => fileInput.click());
+        
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files && e.target.files.length > 0) {
+                handleFiles(e.target.files);
+            }
+        });
+        
+        // Manejar drag and drop
+        uploadContainer.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadContainer.classList.add('dragover');
+        });
+        
+        uploadContainer.addEventListener('dragleave', () => {
+            uploadContainer.classList.remove('dragover');
+        });
+        
+        uploadContainer.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadContainer.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                handleFiles(e.dataTransfer.files);
+            }
+        });
+        
+        convertBtn.addEventListener('click', convertFiles);
+        cleanupBtn.addEventListener('click', resetApplication);
+        
+        // Funciones
+        function handleFiles(files) {
+            selectedFiles = Array.from(files);
+            
+            if (selectedFiles.length === 0) {
+                fileList.innerHTML = '<div class="error">No se seleccionaron archivos.</div>';
+                convertBtn.disabled = true;
+                return;
+            }
+            
+            if (selectedFiles.length > 50) {
+                fileList.innerHTML = `
+                    <div class="warning">
+                        Has seleccionado ${selectedFiles.length} archivos.
+                    </div>
+                `;
+            }
+            
+            fileList.innerHTML = '<h3>Archivos seleccionados:</h3>';
+            const fileListContainer = document.createElement('div');
+            fileListContainer.className = 'file-items';
+            
+            selectedFiles.forEach((file, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.innerHTML = `
+                    <span class="file-name">${file.name}</span>
+                    <span class="file-size">(${formatFileSize(file.size)})</span>
+                    ${index >= 50 ? '<span class="batch-info">(Procesado en siguiente lote)</span>' : ''}
+                `;
+                fileListContainer.appendChild(fileItem);
+            });
+            
+            fileList.appendChild(fileListContainer);
+            convertBtn.disabled = false;
+        }
+        
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        async function convertFiles() {
+            conversionInProgress = true;
+            convertBtn.disabled = true;
+            cleanupBtn.disabled = true;
+            progressContainer.classList.remove('hidden');
+            progressBar.style.width = '0%';
+            status.textContent = 'Preparando archivos...';
+            results.innerHTML = '';
+            
+            const formData = new FormData();
+            selectedFiles.forEach(file => formData.append('files', file));
+            
+            try {
+                status.textContent = 'Subiendo archivos al servidor...';
+        
+                const response = await fetch('/convert', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'Accept': 'application/json'  // Asegurar que esperamos JSON
+                    }
+                });
+
+                // Verificar si la respuesta es JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    const text = await response.text();
+                    throw new Error(`Respuesta inesperada del servidor: ${text.slice(0, 100)}...`);
+                }
+                
+                const data = await response.json();
+        
+                if (!response.ok) {
+                    throw new Error(data.error || 'Error en el servidor');
+                }
+                
+                // Mostrar resultados
+                results.innerHTML = '<h2>Resultados de la conversión</h2>';
+                
+                if (data.success_count > 0) {
+                    if (data.download_all) {
+                        const downloadAll = document.createElement('div');
+                        downloadAll.className = 'download-section';
+                        downloadAll.innerHTML = `
+                            <p>${data.success_count} archivos convertidos exitosamente.</p>
+                            <a href="/download/${data.download_all}" class="btn download-btn">
+                                Descargar todos los archivos (ZIP)
+                            </a>
+                        `;
+                        results.appendChild(downloadAll);
+                    } else if (data.success_count === 1) {
+                        const successFile = data.results.find(r => r.success);
+                        const downloadLink = document.createElement('a');
+                        downloadLink.href = `/download/${successFile.converted}`;
+                        downloadLink.className = 'btn download-btn';
+                        downloadLink.textContent = `Descargar ${successFile.converted}`;
+                        results.appendChild(downloadLink);
+                    }
+                }
+                
+                // Mostrar errores si los hay
+                const errors = data.results.filter(r => !r.success);
+                if (errors.length > 0) {
+                    const errorsDiv = document.createElement('div');
+                    errorsDiv.className = 'errors';
+                    errorsDiv.innerHTML = '<h3>Errores:</h3>';
+                    
+                    errors.forEach(error => {
+                        const errorItem = document.createElement('div');
+                        errorItem.className = 'error-item';
+                        errorItem.textContent = `${error.original}: ${error.error}`;
+                        errorsDiv.appendChild(errorItem);
+                    });
+                    
+                    results.appendChild(errorsDiv);
+                }
+                
+                progressBar.style.width = '100%';
+                status.textContent = 'Conversión completada!';
+                
+            } catch (error) {
+                console.error('Error:', error);
+                status.textContent = `Error: ${error.message}`;
+                status.className = 'error';
+                
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error';
+                errorDiv.innerHTML = `
+                    <p>Error al procesar los archivos:</p>
+                    <p>${error.message}</p>
+                    <p>Por favor, intenta con menos archivos o verifica que sean formatos válidos.</p>
+                `;
+                results.appendChild(errorDiv);
+                
+            } finally {
+                conversionInProgress = false;
+                convertBtn.disabled = false;
+                cleanupBtn.disabled = false;
+            }
+        }
+        
+        async function resetApplication() {
+            if (conversionInProgress && !confirm('Hay una conversión en progreso. ¿Deseas cancelarla y limpiar todo?')) {
+                return;
+            }
+            
+            try {
+                cleanupBtn.disabled = true;
+                status.textContent = 'Limpiando archivos temporales...';
+                
+                const response = await fetch('/cleanup', {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json' // Asegurarnos que esperamos JSON
+                    }
+                });
+                
+                // Verificar el tipo de contenido primero
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    const text = await response.text();
+                    throw new Error(`Respuesta inesperada del servidor: ${text.slice(0, 100)}...`);
+                }
+                
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error || 'Error al limpiar los archivos');
+                }
+                
+                // Resetear la interfaz
+                selectedFiles = [];
+                fileList.innerHTML = '';
+                results.innerHTML = '';
+                progressBar.style.width = '0%';
+                status.textContent = 'Listo para nuevas conversiones';
+                convertBtn.disabled = true;
+                fileInput.value = '';
+                conversionInProgress = false;
+                
+            } catch (error) {
+                console.error('Error al limpiar:', error);
+                status.textContent = `Error al limpiar: ${error.message}`;
+                status.className = 'error';
+                
+                // Mostrar mensaje de error más detallado
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error';
+                errorDiv.innerHTML = `
+                    <p>Error al limpiar los archivos temporales:</p>
+                    <p>${error.message}</p>
+                    <p>Puedes intentar nuevamente o contactar al administrador.</p>
+                `;
+                results.appendChild(errorDiv);
+                
+            } finally {
+                cleanupBtn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,201 @@
+body {
+    font-family: Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+    color: #333;
+    background-color: #f5f5f5;
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: white;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    margin-top: 30px;
+}
+
+h1, h2, h3 {
+    color: #2c3e50;
+}
+
+.upload-container {
+    border: 2px dashed #bdc3c7;
+    padding: 30px;
+    text-align: center;
+    margin: 20px 0;
+    border-radius: 5px;
+    transition: all 0.3s;
+}
+
+.upload-container.dragover {
+    border-color: #3498db;
+    background-color: #f8f9fa;
+}
+
+.btn {
+    background-color: #3498db;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+}
+
+.btn:hover {
+    background-color: #2980b9;
+}
+
+.btn:disabled {
+    background-color: #95a5a6;
+    cursor: not-allowed;
+}
+
+.download-btn {
+    background-color: #2ecc71;
+    display: inline-block;
+    margin-top: 10px;
+    text-decoration: none;
+}
+
+.download-btn:hover {
+    background-color: #27ae60;
+}
+
+#file-list {
+    margin: 20px 0;
+}
+
+.file-items {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #eee;
+    padding: 10px;
+    border-radius: 4px;
+}
+
+.file-item {
+    padding: 8px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+}
+
+.file-item:last-child {
+    border-bottom: none;
+}
+
+.file-name {
+    font-weight: 500;
+}
+
+.file-size {
+    color: #7f8c8d;
+    font-size: 0.9em;
+}
+
+.batch-info {
+    color: #e67e22;
+    font-size: 0.8em;
+    margin-left: 10px;
+}
+
+#progress-container {
+    margin: 30px 0;
+}
+
+.progress-bar {
+    background-color: #ecf0f1;
+    border-radius: 4px;
+    height: 20px;
+    margin: 10px 0;
+    overflow: hidden;
+}
+
+.progress {
+    background-color: #3498db;
+    height: 100%;
+    width: 0%;
+    transition: width 0.3s;
+}
+
+.hidden {
+    display: none;
+}
+
+#status {
+    margin-top: 10px;
+    font-style: italic;
+    color: #7f8c8d;
+}
+
+#file-status {
+    margin-top: 5px;
+    font-size: 0.9em;
+    color: #7f8c8d;
+}
+
+#results {
+    margin-top: 30px;
+}
+
+.download-section {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+.errors {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #fdecea;
+    border-radius: 4px;
+}
+
+.errors h3 {
+    color: #c62828;
+    margin-top: 0;
+}
+
+.error-item {
+    padding: 5px 0;
+    color: #c62828;
+}
+
+.error {
+    color: #c62828;
+}
+
+.warning {
+    color: #e67e22;
+    padding: 10px;
+    background-color: #fff4e5;
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+/* Agrega esto a tu CSS existente */
+
+.action-buttons {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.cleanup-btn {
+    background-color: #e74c3c;
+}
+
+.cleanup-btn:hover {
+    background-color: #c0392b;
+}
+
+.cleanup-btn:disabled {
+    background-color: #95a5a6;
+    cursor: not-allowed;
+}
